@@ -1,21 +1,33 @@
 import React, { useEffect, useState } from "react";
 import "./App.css";
 import bayes from "node-bayes";
-import { patients } from "./api/patients";
-import {Select} from 'element-react'
+import { passengers } from "./api/passengers";
+import { Select, Input } from "element-react";
+import brain from "brain.js";
 
 const App = () => {
   const [patientsData, setPatientsData] = useState([]);
-
-
+  const [hiddenLayers, setHiddenLayers] = useState(0);
+  const SPLIT = 800;
+  const network = new brain.NeuralNetwork({
+    activation: "sigmoid",
+    hiddenLayers: [5],
+    iterations: 20000,
+    learningRate: 0.5,
+  });
   useEffect(() => {
     const getPatientsData = async () => {
-      const data = await patients();
+      const data = await passengers();
       const outer = [];
       data.forEach((patientRecord) => {
-        outer.push(Object.values(patientRecord));
+        const record = Object.values(patientRecord);
+
+        const modifiedRecord = {
+          input: record.slice(1, record.length),
+          output: [record[0]],
+        };
+        outer.push(modifiedRecord);
       });
-      console.log("outer", outer);
       setPatientsData(outer);
       return data;
     };
@@ -23,90 +35,38 @@ const App = () => {
     getPatientsData();
   }, []);
 
-  let TRAINING_COLUMNS_COVID = [
-    "age",
-    "province",
-    "gender",
-    "infection_case",
-    "infection_type",
-    "patient_state?",
-  ];
-
   const trainData = (e) => {
     e.preventDefault();
     if (patientsData.length > 0) {
-      let cls_covid = new bayes.NaiveBayes({
-        columns: TRAINING_COLUMNS_COVID,
-        data: patientsData,
-        verbose: true,
+      const trainData = patientsData.slice(0, SPLIT);
+      const testData = patientsData.slice(SPLIT + 1);
+      network.train(trainData);
+      let hits = 0;
+      testData.forEach((datapoint) => {
+        const output = network.run(datapoint.input);
+        const outputArray = [
+          Math.round(output[0]),
+        ];
+        if (
+          outputArray[0] === datapoint.output[0] 
+        ) {
+          hits += 1;
+        }
       });
-      cls_covid.train();
-      let answer_covid = cls_covid.predict([
-        "50s",
-        "male",
-        "contact with patient",
-        "hospital",
-        "Seoul",
-      ]);
-      console.log("answer_covid: ", answer_covid);
+      console.log('hits / testData.length', hits / testData.length)
+      return hits / testData.length;
+
     }
   };
-  const options = [
-    {
-      value: '0s',
-      label: '0s'
-    },
-    {
-      value: '10s',
-      label: '10s'
-    },
-    {
-      value: '20s',
-      label: '20s'
-    },
-    {
-      value: '30s',
-      label: '30s'
-    },
-    {
-      value: '40s',
-      label: '40s'
-    },
-    {
-      value: '50s',
-      label: '50s'
-    },
-    {
-      value: '60s',
-      label: '60s'
-    },
-    {
-      value: '70s',
-      label: '70s'
-    },
-    {
-      value: '80s',
-      label: '90s'
-    },
-    {
-      value: '90s',
-      label: '90s'
-    },
-    {
-      value: '100s',
-      label: '100s'
-    },
-  ]
   return (
     <div className="App">
-      {/* <Select value={''}>
-      {
-        options.map(el => {
-          return <Select.Option key={el.value} label={el.label} value={el.value} />
-        })
-      }
-    </Select> */}
-    <button onClick={trainData}>click me</button>
+      <div className="main">
+        <h2>Titatic Data</h2>
+        <Input placeholder="Hidden Layers" autoFocus value={hiddenLayers}/>
+        <Input placeholder="Iterations" />
+        <Input placeholder="Learning Rate" />
+        <button onClick={trainData}>Predict Accuracy</button>
+      </div>
     </div>
   );
 };
