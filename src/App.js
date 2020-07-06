@@ -5,6 +5,7 @@ import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import "react-tabs/style/react-tabs.css";
 import NeuralNet from "./screens/NeuralNet/NeuralNet";
 import NaiveBayes from "./screens/NaiveBayes/NaiveBayes";
+import Charts from "./screens/Charts/Charts";
 
 const App = () => {
   const [tabIndex, setTabIndex] = useState(0);
@@ -24,6 +25,7 @@ const App = () => {
         <TabList>
           <Tab>Neural Net</Tab>
           <Tab>Naive Bayes</Tab>
+          <Tab>Charts</Tab>
         </TabList>
 
         <TabPanel>
@@ -31,6 +33,9 @@ const App = () => {
         </TabPanel>
         <TabPanel>
           <NaiveBayes data={data} />
+        </TabPanel>
+        <TabPanel>
+          <Charts data={data} />
         </TabPanel>
       </Tabs>
     </div>
