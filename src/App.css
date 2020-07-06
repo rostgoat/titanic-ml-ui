@@ -98,11 +98,11 @@
   .lds-dual-ring:after {
     content: " ";
     display: block;
-    width: 64px;
-    height: 64px;
+    width: 2rem;
+    height: 2rem;
     margin: 8px;
     border-radius: 50%;
-    border: 6px solid #000;
+    border: 6px solid rgb(155, 153, 153);
     border-color: #000 transparent #000 transparent;
     animation: lds-dual-ring 1.2s linear infinite;
   }

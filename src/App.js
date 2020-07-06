@@ -12,16 +12,24 @@ const App = () => {
   const [hiddenLayers, setHiddenLayers] = useState("");
   const [iterations, setIterations] = useState("");
   const [learningRate, setLearningRate] = useState("");
-  const [loading, setLoading] = useState(false);
   const [neuralNetworkResult, setNeuralNetworkResult] = useState("");
   const [maleSurvivorCount, setMaleSurvivorCount] = useState(0);
   const [femaleSurvivorCount, setFemaleSurvivorCount] = useState(0);
+  const [totalPassengers, setTotalPassengers] = useState(0);
+  const [
+    survivalCountByClassAndGender,
+    setSurvivalCountByClassAndGender,
+  ] = useState([]);
+  const [
+    survivalCountByAgeAndGender,
+    setSurvivalCountByAgeAndGender,
+  ] = useState([]);
 
   const maleFemaleSurvivalOptions = {
     width: 450,
     height: 300,
     title: {
-      text: "Male/Female Survivor Count",
+      text: "Survivors By Gender",
     },
     data: [
       {
@@ -34,21 +42,110 @@ const App = () => {
     ],
   };
 
+  const maleFemaleSurvivalByClassOptions = {
+    width: 450,
+    height: 300,
+    title: {
+      text: "Survivors By Gender and Passenger Class",
+    },
+    data: [
+      {
+        type: "column",
+        dataPoints: [
+          { label: "Male Class 1", y: survivalCountByClassAndGender[0] },
+          { label: "Male Class 2", y: survivalCountByClassAndGender[1] },
+          { label: "Male Class 3", y: survivalCountByClassAndGender[2] },
+          { label: "Female Class 1", y: survivalCountByClassAndGender[3] },
+          { label: "Female Class 2", y: survivalCountByClassAndGender[4] },
+          { label: "Female Class 3", y: survivalCountByClassAndGender[5] },
+        ],
+      },
+    ],
+  };
+
+  const maleFemaleSurvivalByAgeOptions = {
+    width: 450,
+    height: 300,
+    title: {
+      text: "Survivors By Gender and Age",
+    },
+    data: [
+      {
+        type: "column",
+        dataPoints: [
+          { label: "Male Teen", y: survivalCountByAgeAndGender[0] },
+          { label: "Male Adult", y: survivalCountByAgeAndGender[1] },
+          { label: "Male Senior", y: survivalCountByAgeAndGender[2] },
+          { label: "Female Teen", y: survivalCountByAgeAndGender[3] },
+          { label: "Female Adult", y: survivalCountByAgeAndGender[4] },
+          { label: "Female Senior", y: survivalCountByAgeAndGender[5] },
+        ],
+      },
+    ],
+  };
+
   useEffect(() => {
     const getPatientsData = async () => {
       const data = await passengers();
       const outer = [];
       console.log("data", data);
-      const reducer = (accumulator, currentValue) => accumulator + currentValue;
+      setTotalPassengers(data.length);
 
       let maleSurvival = 0;
       let femaleSurvival = 0;
+      let maleSurvivedClassOne = 0;
+      let maleSurvivedClassTwo = 0;
+      let maleSurvivedClassThree = 0;
+      let femaleSurvivedClassOne = 0;
+      let femaleSurvivedClassTwo = 0;
+      let femaleSurvivedClassThree = 0;
+      let maleSurvivedTeen = 0;
+      let maleSurvivedAdult = 0;
+      let maleSurvivedSenior = 0;
+      let femaleSurvivedTeen = 0;
+      let femaleSurvivedAdult = 0;
+      let femaleSurvivedSenior = 0;
 
       data.forEach((patientRecord) => {
-        const { survived, male, female } = patientRecord;
+        const { survived, male, female, passenger_class, age } = patientRecord;
+        // general survival by gender
         if (survived && male) maleSurvival++;
         if (survived && female) femaleSurvival++;
+        // survival by passenger class
+        if (survived && passenger_class === 1 && male) maleSurvivedClassOne++;
+        if (survived && passenger_class === 2 && male) maleSurvivedClassTwo++;
+        if (survived && passenger_class === 3 && male) maleSurvivedClassThree++;
+        if (survived && passenger_class === 1 && female)
+          femaleSurvivedClassOne++;
+        if (survived && passenger_class === 2 && female)
+          femaleSurvivedClassTwo++;
+        if (survived && passenger_class === 3 && female)
+          femaleSurvivedClassThree++;
+        // surival by age
+        if (survived && age < 18 && male) maleSurvivedTeen++;
+        if (survived && age >= 18 && age < 50 && male) maleSurvivedAdult++;
+        if (survived && age > 50 && male) maleSurvivedSenior++;
+        if (survived && age < 18 && female) femaleSurvivedTeen++;
+        if (survived && age >= 18 && age < 50 && female) femaleSurvivedAdult++;
+        if (survived && age > 50 && female) femaleSurvivedSenior++;
 
+        setSurvivalCountByClassAndGender([
+          maleSurvivedClassOne,
+          maleSurvivedClassTwo,
+          maleSurvivedClassThree,
+          femaleSurvivedClassOne,
+          femaleSurvivedClassTwo,
+          femaleSurvivedClassThree,
+        ]);
+
+        setSurvivalCountByAgeAndGender([
+          maleSurvivedTeen,
+          maleSurvivedAdult,
+          maleSurvivedSenior,
+          femaleSurvivedTeen,
+          femaleSurvivedAdult,
+          femaleSurvivedSenior,
+        ]);
         const record = Object.values(patientRecord);
 
         const modifiedRecord = {
@@ -57,8 +154,7 @@ const App = () => {
         };
         outer.push(modifiedRecord);
       });
-      console.log("maleSurvival", maleSurvival);
-      console.log("femaleSurvival", femaleSurvival);
+
       setMaleSurvivorCount(maleSurvival);
       setFemaleSurvivorCount(femaleSurvival);
       setPatientsData(outer);
@@ -69,21 +165,23 @@ const App = () => {
   }, []);
 
   const trainData = (e) => {
-    console.log("inside");
     e.preventDefault();
-    setLoading(true)
     if (patientsData.length > 0) {
       const SPLIT = 800;
+      let hits = 0;
+      const trainData = patientsData.slice(0, SPLIT);
+      const testData = patientsData.slice(SPLIT + 1);
+
+      // create network
       const network = new brain.NeuralNetwork({
         activation: "sigmoid",
         hiddenLayers: [parseInt(hiddenLayers, 10)],
         iterations: parseInt(iterations, 10),
         learningRate: parseFloat(learningRate),
       });
-      const trainData = patientsData.slice(0, SPLIT);
-      const testData = patientsData.slice(SPLIT + 1);
+      // train network
       network.train(trainData);
-      let hits = 0;
+      // test data against training data
       testData.forEach((datapoint) => {
         const output = network.run(datapoint.input);
         const outputArray = [Math.round(output[0])];
@@ -91,8 +189,7 @@ const App = () => {
           hits += 1;
         }
       });
-      if (hits)setLoading(false);
-      console.log("hits / testData.length", hits / testData.length);
+      // show results
       setNeuralNetworkResult((hits / testData.length).toString());
     }
   };
@@ -138,13 +235,20 @@ const App = () => {
             name="Predict Accuracy"
             className="main__form-button"
           />
-          {loading && <div className="lds-dual-ring"></div>}
           {!!neuralNetworkResult && (
-            <div className="main__result">Prediction Accuracy: {parseFloat(neuralNetworkResult).toFixed(4)}</div>
+            <div className="main__result">
+              Prediction Accuracy: {parseFloat(neuralNetworkResult).toFixed(4)}
+            </div>
           )}
         </form>
         <div className="chart">
           <CanvasJSChart options={maleFemaleSurvivalOptions} />
+        </div>
+        <div className="chart">
+          <CanvasJSChart options={maleFemaleSurvivalByClassOptions} />
+        </div>
+        <div className="chart">
+          <CanvasJSChart options={maleFemaleSurvivalByAgeOptions} />
         </div>
       </div>
     </div>
