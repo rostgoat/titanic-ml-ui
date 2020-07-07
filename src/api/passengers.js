@@ -1,8 +1,8 @@
 import request from '../utils/request'
 
-export const patients = (params) => {
+export const passengers = (params) => {
     return request({
-      url: "/patients/find",
+      url: "/passengers/find",
       method: "get",
       params
     });
