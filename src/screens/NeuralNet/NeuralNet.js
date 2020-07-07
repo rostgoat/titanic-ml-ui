@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from "react";
-import "./NeuralNet.css";
 import brain from "brain.js";
-import CanvasJSReact from "../../assets/canvasjs.react";
-
-const CanvasJSChart = CanvasJSReact.CanvasJSChart;
 
 const NeuralNet = ({ data }) => {
   const [patientsData, setPatientsData] = useState([]);
@@ -11,37 +7,43 @@ const NeuralNet = ({ data }) => {
   const [iterations, setIterations] = useState("");
   const [learningRate, setLearningRate] = useState("");
   const [neuralNetworkResult, setNeuralNetworkResult] = useState("");
-
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (patientsData.length > 0) {
       setLoading(true);
+      setError("")
       const SPLIT = 800;
       let hits = 0;
       const trainData = patientsData.slice(0, SPLIT);
       const testData = patientsData.slice(SPLIT + 1);
 
-      // create network
-      const network = new brain.NeuralNetwork({
-        activation: "sigmoid",
-        hiddenLayers: [parseInt(hiddenLayers, 10)],
-        iterations: parseInt(iterations, 10),
-        learningRate: parseFloat(learningRate),
-      });
-      // train network
-      network.train(trainData);
-      // test data against training data
-      testData.forEach((datapoint) => {
-        const output = network.run(datapoint.input);
-        const outputArray = [Math.round(output[0])];
-        if (outputArray[0] === datapoint.output[0]) {
-          hits += 1;
-        }
-      });
-      // show results
-      setNeuralNetworkResult((hits / testData.length).toString());
-      setLoading(false);
+      if (hiddenLayers === "" && iterations === "" && learningRate === "") {
+        setError("Please fill out all fields!");
+        setLoading(false);
+      } else {
+        // create network
+        const network = new brain.NeuralNetwork({
+          activation: "sigmoid",
+          hiddenLayers: [parseInt(hiddenLayers, 10)],
+          iterations: parseInt(iterations, 10),
+          learningRate: parseFloat(learningRate),
+        });
+        // train network
+        network.train(trainData);
+        // test data against training data
+        testData.forEach((datapoint) => {
+          const output = network.run(datapoint.input);
+          const outputArray = [Math.round(output[0])];
+          if (outputArray[0] === datapoint.output[0]) {
+            hits += 1;
+          }
+        });
+        // show results
+        setNeuralNetworkResult((hits / testData.length).toString());
+        setLoading(false);
+      }
     }
   }, [patientsData, loading]);
 
@@ -69,7 +71,9 @@ const NeuralNet = ({ data }) => {
 
   return (
     <div className="main">
-      <h2>Titatic Neural Network Survival Rate Predictor</h2>
+      <h2 className="main__title">
+        Titatic Neural Network Survival Rate Predictor
+      </h2>
       <form onSubmit={trainData} className="main__form">
         <div className="main__input-container">
           <label className="main__form-label">Hidden Layers</label>
@@ -108,13 +112,8 @@ const NeuralNet = ({ data }) => {
           name="Predict Accuracy"
           className="main__form-button"
         />
-        {loading && (
-          <div>
-            <span>Predicting...</span>
-            <div className="lds-dual-ring"></div>
-          </div>
-        )}
-
+        {loading && <div className="lds-dual-ring"></div>}
+        {!!error && <span className="error">{error}</span>}
         {!!neuralNetworkResult && (
           <div className="main__result">
             Prediction Accuracy: {parseFloat(neuralNetworkResult).toFixed(4)}

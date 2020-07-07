@@ -10,6 +10,7 @@ const NaiveBayes = ({ data }) => {
   const [inputMatrix, setInputMatrix] = useState([]);
   const [outputMatrix, setOutputMatrix] = useState([]);
   const [naiveBayesResult, setNaiveBayesResult] = useState("");
+  const [error, setError] = useState("");
   const [options, setOptions] = useState([
     {
       value: "male",
@@ -23,14 +24,26 @@ const NaiveBayes = ({ data }) => {
 
   useEffect(() => {
     if (inputMatrix.length > 0 && outputMatrix.length > 0) {
+      setError("");
       const model = new GaussianNB();
       model.train(inputMatrix, outputMatrix);
-
-      const genderArray = gender === "male" ? [1, 0] : [0, 1];
-      const predictions = model.predict([
-        [passengerClass, age, fare, genderArray[0], genderArray[1]],
-      ]);
-      setNaiveBayesResult(predictions[0].toString());
+      let genderArray;
+      if (gender !== "") {
+        genderArray = gender === "male" ? [1, 0] : [0, 1];
+      }
+      if (
+        passengerClass === "" &&
+        age === "" &&
+        fare === "" &&
+        gender === ""
+      ) {
+        setError("Please fill out all fields!");
+      } else {
+        const predictions = model.predict([
+          [passengerClass, age, fare, genderArray[0], genderArray[1]],
+        ]);
+        setNaiveBayesResult(predictions[0].toString());
+      }
     }
   }, [inputMatrix, outputMatrix]);
 
@@ -53,7 +66,9 @@ const NaiveBayes = ({ data }) => {
 
   return (
     <div className="main">
-      <h2>Titatic Naive Bayes Survival Rate Predictor</h2>
+      <h2 className="main__title">
+        Titatic Naive Bayes Survival Rate Predictor
+      </h2>
       <form onSubmit={trainData} className="main__form">
         <div className="main__input-container">
           <label className="main__form-label">Passenger Class</label>
@@ -107,6 +122,7 @@ const NaiveBayes = ({ data }) => {
           name="Predict Survival"
           className="main__form-button"
         />
+        {!!error && <span className="error">{error}</span>}
         {!!naiveBayesResult && (
           <div className="main__result">
             Prediction Accuracy:{" "}
